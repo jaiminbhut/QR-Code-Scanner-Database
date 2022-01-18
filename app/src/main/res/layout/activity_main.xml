@@ -1,26 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity"
-    android:background="#E6E5E6">
+    android:background="#E6E5E6"
+    tools:context=".MainActivity">
+
     <SearchView
+        android:id="@+id/inputSearch"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Search Here For QR Text"
-        android:id="@+id/inputSearch"/>
+        android:hint="Search Here For QR Text" />
+
     <ListView
         android:id="@+id/qrDetailList"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginTop="55dp"
+        android:cacheColorHint="@android:color/transparent"
         android:divider="@null"
         android:dividerHeight="10dp"
-        android:layout_marginTop="55dp"
-        android:listSelector="@android:color/transparent"
-        android:cacheColorHint="@android:color/transparent"
+        android:footerDividersEnabled="true"
         android:headerDividersEnabled="true"
-        android:footerDividersEnabled="true" />
+        android:listSelector="@android:color/transparent" />
 
 </RelativeLayout>

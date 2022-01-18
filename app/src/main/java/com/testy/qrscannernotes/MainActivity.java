@@ -4,10 +4,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -15,44 +12,35 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
-import com.google.zxing.Result;
-import com.google.zxing.integration.android.IntentIntegrator;
-import com.google.zxing.integration.android.IntentResult;
-import com.google.zxing.qrcode.encoder.QRCode;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.hudomju.swipe.SwipeToDismissTouchListener;
 import com.hudomju.swipe.adapter.ListViewAdapter;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 
 public class MainActivity extends AppCompatActivity {
 
     static SQLiteDatabase myDatabase;
-    Date currentTime;
-    SimpleDateFormat df;
     ListView qrDetailList;
-    List<QrBeanModel> QrObject = new ArrayList<>();
+    List<QrDataModel> QrObject = new ArrayList<>();
     QrDetailAdapter qrDetailAdapter;
     Cursor c;
     SearchView inputSearch;
-    List<QrBeanModel> tempList = new ArrayList<>();
+    List<QrDataModel> tempList = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        intializeViews();
-        qrDetailAdapter = new QrDetailAdapter( this ,R.layout.qr_list_items,QrObject);
+        initializeViews();
+        qrDetailAdapter = new QrDetailAdapter(this, R.layout.qr_list_items, QrObject);
         qrDetailList.setAdapter(qrDetailAdapter);
         qrDetailAdapter.notifyDataSetChanged();
         performSql();
@@ -68,12 +56,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onQueryTextChange(String s) {
                 QrObject.clear();
-                for(QrBeanModel qr: tempList){
-                    if(qr.getQrText().contains(s)){
+                for (QrDataModel qr : tempList) {
+                    if (qr.getQrText().contains(s)) {
                         //contains
                         QrObject.add(qr);
-                    } else if(s.length() == 0) {
-                        Toast.makeText(getApplicationContext(),"list is clear",Toast.LENGTH_LONG).show();
+                    } else if (s.length() == 0) {
+                        Toast.makeText(getApplicationContext(), "list is clear", Toast.LENGTH_LONG).show();
                         tempList.addAll(QrObject);
                     }
                 }
@@ -81,8 +69,6 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         });
-
-
 
         //To perform delete on swipe in the list
         final SwipeToDismissTouchListener<ListViewAdapter> touchListener =
@@ -115,64 +101,45 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void intializeViews(){
+    public void initializeViews() {
         qrDetailList = (ListView) findViewById(R.id.qrDetailList);
         qrDetailList.setTextFilterEnabled(true);
         inputSearch = (SearchView) findViewById(R.id.inputSearch);
     }
 
-    public void scan(){
-        IntentIntegrator integrator = new IntentIntegrator(this);
-        integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE);
-        integrator.setPrompt("Scan QR Code");
-        integrator.setCameraId(0);  // Use a specific camera of the device
-        integrator.setBeepEnabled(false);
-        integrator.setBarcodeImageEnabled(true);
-        integrator.setCaptureActivity(CaptureActivityPortrait.class);
-        integrator.initiateScan();
+    public void scan() {
+        startActivityForResult(new Intent(this, BarcodeActivity.class), 10);
+    }
+
+    public void handleCodeAdd(Intent data) {
+        if (data.hasExtra("item")) {
+            QrDataModel projectListModel = (QrDataModel) data.getSerializableExtra("item");
+            QrObject.add(projectListModel);
+            qrDetailAdapter.notifyDataSetChanged();
+        }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
-        if(result != null) {
-            if(result.getContents() == null) {
-                Toast.makeText(this, "Cancelled", Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(this, "Scanned: " + result.getContents(), Toast.LENGTH_LONG).show();
-                String scannedResult = result.getContents();
-                currentTime = Calendar.getInstance().getTime();
-                df = new SimpleDateFormat("dd-MMM-yyyy");
-                String formattedDate = df.format(currentTime);
-                String d = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
-                System.out.println(formattedDate);
-                String sql = "INSERT INTO lastfourth (name, date , spec) VALUES (? , ?, ?)";
-                SQLiteStatement statement = myDatabase.compileStatement(sql);
-                QrBeanModel qrBeanModel = new QrBeanModel(scannedResult,formattedDate,d);
-                QrObject.add(qrBeanModel);
-                qrDetailAdapter.notifyDataSetChanged();
-                statement.bindString(1,scannedResult);
-                statement.bindString(2,formattedDate);
-                statement.bindString(3,d);
-                statement.execute();
-                Toast.makeText(getApplicationContext(),"ADDED to database",Toast.LENGTH_LONG).show();
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 10) {
+            if (resultCode != RESULT_CANCELED) {
+                handleCodeAdd(data);
             }
-        } else {
-            super.onActivityResult(requestCode, resultCode, data);
         }
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu,menu);
+        inflater.inflate(R.menu.menu, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        switch (id){
+        switch (id) {
             case R.id.scanQrCode:
                 scan();
                 break;
@@ -186,86 +153,69 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public void orderByDate(){
-        Toast.makeText(getApplicationContext(),"order by date working",Toast.LENGTH_LONG).show();
-        c = myDatabase.rawQuery("SELECT * FROM lastfourth ORDER BY date Desc",null);
+    public void orderByDate() {
+        Toast.makeText(getApplicationContext(), "order by date working", Toast.LENGTH_LONG).show();
+        c = myDatabase.rawQuery("SELECT * FROM lastfourth ORDER BY date Desc", null);
+        int nameIndex = c.getColumnIndex("name");
+        int dateIndex = c.getColumnIndex("date");
+        int dateIDIndex = c.getColumnIndex("spec");
+        if (c.moveToFirst()) {
+            do {
+                Log.i("user-name", c.getString(nameIndex));
+                Log.i("date id ", c.getString(dateIDIndex));
+                QrDataModel qrDataModel = new QrDataModel(c.getString(nameIndex), c.getString(dateIndex), c.getString(dateIDIndex));
+                QrObject.add(qrDataModel);
+                qrDetailAdapter.notifyDataSetChanged();
+                Log.i("user-age", c.getString(dateIndex));
+            } while (c.moveToNext());
+        }
+    }
+
+    public void orderByName() {
+        Toast.makeText(getApplicationContext(), "order by date working", Toast.LENGTH_LONG).show();
+        c = myDatabase.rawQuery("SELECT * FROM lastfourth ORDER BY name", null);
         int nameIndex = c.getColumnIndex("name");
         int dateIndex = c.getColumnIndex("date");
         int dateIDIndex = c.getColumnIndex("spec");
 
-
-        if(c.moveToFirst()){
-            do{
-                Log. i ( "user-name" ,c.getString(nameIndex));
-                Log.i("date id ",c.getString(dateIDIndex));
-                QrBeanModel qrBeanModel = new QrBeanModel(c.getString(nameIndex),c.getString(dateIndex),c.getString(dateIDIndex));
-                QrObject.add(qrBeanModel);
+        if (c.moveToFirst()) {
+            do {
+                QrDataModel qrDataModel = new QrDataModel(c.getString(nameIndex), c.getString(dateIndex), c.getString(dateIDIndex));
+                QrObject.add(qrDataModel);
                 qrDetailAdapter.notifyDataSetChanged();
-                Log. i ( "user-age" ,c.getString(dateIndex));
-            }while (c.moveToNext());
+            } while (c.moveToNext());
         }
     }
 
-    public void orderByName(){
-        Toast.makeText(getApplicationContext(),"order by date working",Toast.LENGTH_LONG).show();
-        c = myDatabase.rawQuery("SELECT * FROM lastfourth ORDER BY name",null);
-        int nameIndex = c.getColumnIndex("name");
-        int dateIndex = c.getColumnIndex("date");
-        int dateIDIndex = c.getColumnIndex("spec");
-
-
-        if(c.moveToFirst()){
-            do{
-                Log. i ( "user-name" ,c.getString(nameIndex));
-                Log.i("date id ",c.getString(dateIDIndex));
-                QrBeanModel qrBeanModel = new QrBeanModel(c.getString(nameIndex),c.getString(dateIndex),c.getString(dateIDIndex));
-                QrObject.add(qrBeanModel);
-                qrDetailAdapter.notifyDataSetChanged();
-                Log. i ( "user-age" ,c.getString(dateIndex));
-            }while (c.moveToNext());
-        }
-    }
-
-    public static void sendUniqueKey(String s){
+    public static void sendUniqueKey(String s) {
         String sql = "DELETE FROM lastfourth WHERE spec = ? ";
         SQLiteStatement statement = myDatabase.compileStatement(sql);
-        statement.bindString(1,s);
+        statement.bindString(1, s);
         statement.execute();
-        Log.i("tag",s+"Deleted");
-       // MainActivity m = new MainActivity();
-       // m.performSql();
     }
 
-    public void performSql(){
-        myDatabase = this .openOrCreateDatabase( "Users" , MODE_PRIVATE , null );
-
-        //Creating the table if not exists
+    public void performSql() {
+        myDatabase = this.openOrCreateDatabase("Users", MODE_PRIVATE, null);
         myDatabase.execSQL("CREATE TABLE IF NOT EXISTS lastfourth (name VARCHAR , date VARCHAR , spec VARCHAR)");
         showDatabaseInList();
     }
 
-    public void showDatabaseInList(){
-
+    public void showDatabaseInList() {
         try {
-            c = myDatabase.rawQuery("SELECT * FROM lastfourth",null);
-
+            c = myDatabase.rawQuery("SELECT * FROM lastfourth", null);
             int nameIndex = c.getColumnIndex("name");
             int dateIndex = c.getColumnIndex("date");
             int dateIDIndex = c.getColumnIndex("spec");
 
-            if(c.moveToFirst()){
-                do{
-                    Log. i ( "user-name" ,c.getString(nameIndex));
-                    Log.i("date id ",c.getString(dateIDIndex));
-                    QrBeanModel qrBeanModel = new QrBeanModel(c.getString(nameIndex),c.getString(dateIndex),c.getString(dateIDIndex));
-                    QrObject.add(qrBeanModel);
+            if (c.moveToFirst()) {
+                do {
+                    QrDataModel qrDataModel = new QrDataModel(c.getString(nameIndex), c.getString(dateIndex), c.getString(dateIDIndex));
+                    QrObject.add(qrDataModel);
                     qrDetailAdapter.notifyDataSetChanged();
-                    Log. i ( "user-age" ,c.getString(dateIndex));
-                }while (c.moveToNext());
+                } while (c.moveToNext());
             }
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
         }
     }
 }

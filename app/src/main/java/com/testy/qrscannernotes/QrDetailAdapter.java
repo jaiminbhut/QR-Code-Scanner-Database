@@ -6,56 +6,32 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
-public class QrDetailAdapter extends ArrayAdapter<QrBeanModel> {
-    List<QrBeanModel> QrObject;
-//    private ArrayList<QrBeanModel> privatearray;
-    public QrDetailAdapter(Context context, int resource,List<QrBeanModel> objects) {
+public class QrDetailAdapter extends ArrayAdapter<QrDataModel> {
+    List<QrDataModel> QrObject;
+    public QrDetailAdapter(Context context, int resource, List<QrDataModel> objects) {
         super(context, resource, objects);
         this.QrObject = objects;
     }
 
     public void remove(int position) {
-        QrBeanModel qrBeanModel = getItem(position);
-        qrBeanModel.getQrText();
+        QrDataModel qrDataModel = getItem(position);
+        qrDataModel.getQrText();
         QrObject.remove(position);
-        //Toast.makeText(getContext(),"Clicked  " + qrBeanModel.getSpecDate(),Toast.LENGTH_LONG).show();
-        MainActivity.sendUniqueKey(qrBeanModel.getSpecDate());
+        MainActivity.sendUniqueKey(qrDataModel.getSpecDate());
         notifyDataSetChanged();
     }
 
     @Override
-    public View getView(int position,View convertView,ViewGroup parent) {
-        convertView = ((Activity) getContext()).getLayoutInflater().inflate(R.layout.qr_list_items,parent,false);
+    public View getView(int position, View convertView, ViewGroup parent) {
+        convertView = ((Activity) getContext()).getLayoutInflater().inflate(R.layout.qr_list_items, parent, false);
         TextView qrText = convertView.findViewById(R.id.qrText);
         TextView qrDate = convertView.findViewById(R.id.qrDate);
-        QrBeanModel qrBeanModel = getItem(position);
-        qrText.setText(qrBeanModel.getQrText());
-        qrDate.setText(qrBeanModel.getDate());
+        QrDataModel qrDataModel = getItem(position);
+        qrText.setText(qrDataModel.getQrText());
+        qrDate.setText(qrDataModel.getDate());
         return convertView;
     }
-
-//    // Filter Class
-//    public void filter(String charText) {
-//
-//        charText = charText.toLowerCase(Locale.getDefault());
-//        QrObject.clear();
-//        if(charText.length()==0){
-//            privatearray.addAll(QrObject);
-//        }
-//        else{
-//            for (QrBeanModel c : privatearray) {
-//                if (c.getQrText().toLowerCase(Locale.getDefault())
-//                        .contains(charText)) {
-//                    QrObject.add(c);
-//                }
-//            }
-//        }
-//        notifyDataSetChanged();
-//    }
 }

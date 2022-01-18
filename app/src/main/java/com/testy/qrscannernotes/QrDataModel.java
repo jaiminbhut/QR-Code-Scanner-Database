@@ -1,11 +1,13 @@
 package com.testy.qrscannernotes;
 
-public class QrBeanModel  {
+import java.io.Serializable;
+
+public class QrDataModel implements Serializable {
     private String QrText;
     private String Date;
     public String SpecDate;
 
-    public QrBeanModel(String qrText, String date, String specDate) {
+    public QrDataModel(String qrText, String date, String specDate) {
         QrText = qrText;
         Date = date;
         SpecDate = specDate;
