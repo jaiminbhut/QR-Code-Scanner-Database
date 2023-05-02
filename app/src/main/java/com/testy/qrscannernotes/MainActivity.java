@@ -9,20 +9,20 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.AbsListView;
-import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.SearchView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
 
 import com.hudomju.swipe.SwipeToDismissTouchListener;
 import com.hudomju.swipe.adapter.ListViewAdapter;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
 
         //Main code for search view
         tempList.addAll(QrObject);
+        inputSearch.setIconified(false);
         inputSearch.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String s) {
@@ -61,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
                         //contains
                         QrObject.add(qr);
                     } else if (s.length() == 0) {
-                        Toast.makeText(getApplicationContext(), "list is clear", Toast.LENGTH_LONG).show();
                         tempList.addAll(QrObject);
                     }
                 }
@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
         final SwipeToDismissTouchListener<ListViewAdapter> touchListener =
                 new SwipeToDismissTouchListener<>(
                         new ListViewAdapter(qrDetailList),
-                        new SwipeToDismissTouchListener.DismissCallbacks<ListViewAdapter>() {
+                        new SwipeToDismissTouchListener.DismissCallbacks<>() {
                             @Override
                             public boolean canDismiss(int position) {
                                 return true;
@@ -88,33 +88,50 @@ public class MainActivity extends AppCompatActivity {
 
         qrDetailList.setOnTouchListener(touchListener);
         qrDetailList.setOnScrollListener((AbsListView.OnScrollListener) touchListener.makeScrollListener());
-        qrDetailList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                if (touchListener.existPendingDismisses()) {
-                    touchListener.undoPendingDismiss();
-                } else {
-                    Toast.makeText(MainActivity.this, "Position " + position, Toast.LENGTH_SHORT).show();
-                }
+        qrDetailList.setOnItemClickListener((parent, view, position, id) -> {
+            if (touchListener.existPendingDismisses()) {
+                touchListener.undoPendingDismiss();
             }
         });
     }
 
 
     public void initializeViews() {
-        qrDetailList = (ListView) findViewById(R.id.qrDetailList);
+        qrDetailList = findViewById(R.id.qrDetailList);
         qrDetailList.setTextFilterEnabled(true);
-        inputSearch = (SearchView) findViewById(R.id.inputSearch);
+        inputSearch = findViewById(R.id.inputSearch);
     }
 
     public void scan() {
-        startActivityForResult(new Intent(this, BarcodeActivity.class), 10);
+        Bundle bundle = new Bundle();
+        ArrayList<String> s = new ArrayList<>();
+        for (QrDataModel modal : QrObject) {
+            s.add(modal.getQrText());
+        }
+        bundle.putStringArrayList("array", s);
+        Intent i = new Intent(this, BarcodeActivity.class);
+        i.putExtras(bundle);
+        startActivityForResult(i, 10, bundle);
     }
 
     public void handleCodeAdd(Intent data) {
         if (data.hasExtra("item")) {
             QrDataModel projectListModel = (QrDataModel) data.getSerializableExtra("item");
-            QrObject.add(projectListModel);
+
+            List<QrDataModel> newList = new ArrayList<>();
+            newList.addAll(QrObject);
+            if (QrObject.isEmpty()) {
+                newList.add(projectListModel);
+                QrObject.addAll(newList);
+            } else {
+                for (QrDataModel modal : QrObject) {
+                    if (!Objects.equals(modal.getQrText(), projectListModel.getQrText())) {
+                        newList.add(projectListModel);
+                    }
+                }
+                QrObject.clear();
+                QrObject.addAll(newList);
+            }
             qrDetailAdapter.notifyDataSetChanged();
         }
     }
@@ -154,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void orderByDate() {
-        Toast.makeText(getApplicationContext(), "order by date working", Toast.LENGTH_LONG).show();
+        QrObject.clear();
         c = myDatabase.rawQuery("SELECT * FROM lastfourth ORDER BY date Desc", null);
         int nameIndex = c.getColumnIndex("name");
         int dateIndex = c.getColumnIndex("date");
@@ -172,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void orderByName() {
-        Toast.makeText(getApplicationContext(), "order by date working", Toast.LENGTH_LONG).show();
+        QrObject.clear();
         c = myDatabase.rawQuery("SELECT * FROM lastfourth ORDER BY name", null);
         int nameIndex = c.getColumnIndex("name");
         int dateIndex = c.getColumnIndex("date");
@@ -206,6 +223,7 @@ public class MainActivity extends AppCompatActivity {
             int nameIndex = c.getColumnIndex("name");
             int dateIndex = c.getColumnIndex("date");
             int dateIDIndex = c.getColumnIndex("spec");
+            QrObject.clear();
 
             if (c.moveToFirst()) {
                 do {

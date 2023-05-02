@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteStatement;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -24,8 +25,11 @@ import com.google.android.gms.vision.barcode.BarcodeDetector;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
+import java.util.Objects;
 
 public class BarcodeActivity extends AppCompatActivity {
 
@@ -40,10 +44,18 @@ public class BarcodeActivity extends AppCompatActivity {
     private TextView barcodeText;
     private String barcodeData;
 
+    ArrayList<String> QrObject = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_barcode);
+
+        Intent i = getIntent();
+        Bundle extras = i.getExtras();
+        ArrayList<String> s = extras.getStringArrayList("array");
+        QrObject.addAll(s);
+
         toneGenerator = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
         surfaceView = findViewById(R.id.surface_view);
         barcodeText = findViewById(R.id.barcode_text);
@@ -63,18 +75,27 @@ public class BarcodeActivity extends AppCompatActivity {
         String formattedDate = df.format(currentTime);
         String d = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
         System.out.println(formattedDate);
-        String sql = "INSERT INTO lastfourth (name, date , spec) VALUES (? , ?, ?)";
-        SQLiteStatement statement = myDatabase.compileStatement(sql);
-        statement.bindString(1, scannedResult);
-        statement.bindString(2, formattedDate);
-        statement.bindString(3, d);
-        statement.execute();
-        Toast.makeText(getApplicationContext(), "ADDED to database", Toast.LENGTH_LONG).show();
-        QrDataModel qrDataModel = new QrDataModel(scannedResult, formattedDate, d);
-        Intent intent = new Intent();
-        intent.putExtra("item", qrDataModel);
-        setResult(10, intent);
-        finish();
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            boolean isContains = QrObject.stream().anyMatch(s -> s != scannedResult);
+            if (isContains) {
+                Toast.makeText(this, "Code already exist", Toast.LENGTH_SHORT).show();
+                finish();
+            } else {
+                String sql = "INSERT INTO lastfourth (name, date , spec) VALUES (? , ?, ?)";
+                SQLiteStatement statement = myDatabase.compileStatement(sql);
+                statement.bindString(1, scannedResult);
+                statement.bindString(2, formattedDate);
+                statement.bindString(3, d);
+                statement.execute();
+                QrDataModel qrDataModel = new QrDataModel(scannedResult, formattedDate, d);
+                Intent intent = new Intent();
+                intent.putExtra("item", qrDataModel);
+                setResult(10, intent);
+                finish();
+            }
+            Log.e("isContains", String.valueOf(isContains));
+        }
     }
 
     private void initialiseDetectorsAndSources() {

@@ -6,10 +6,11 @@
     android:background="#E6E5E6"
     tools:context=".MainActivity">
 
-    <SearchView
+    <androidx.appcompat.widget.SearchView
         android:id="@+id/inputSearch"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="#ffffff"
         android:hint="Search Here For QR Text" />
 
     <ListView
